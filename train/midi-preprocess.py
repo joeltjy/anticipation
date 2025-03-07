@@ -2,8 +2,12 @@ import traceback
 from argparse import ArgumentParser
 from concurrent.futures import ProcessPoolExecutor
 from glob import glob
+import sys
+import os
 
 from tqdm import tqdm
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from anticipation.convert import midi_to_compound
 from anticipation.config import PREPROC_WORKERS
@@ -28,7 +32,6 @@ def convert_midi(filename, debug=False):
 def main(args):
     filenames = glob(args.dir + '/**/*.mid', recursive=True) \
             + glob(args.dir + '/**/*.midi', recursive=True)
-
     print(f'Preprocessing {len(filenames)} files with {PREPROC_WORKERS} workers')
     with ProcessPoolExecutor(max_workers=PREPROC_WORKERS) as executor:
         results = list(tqdm(executor.map(convert_midi, filenames), desc='Preprocess', total=len(filenames)))

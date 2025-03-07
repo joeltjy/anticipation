@@ -3,7 +3,9 @@ The vocabularies used for arrival-time and interarrival-time encodings.
 """
 
 # training sequence vocab
-
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from anticipation.config import *
 
 # the event block
@@ -25,6 +27,8 @@ SEPARATOR = SPECIAL_OFFSET
 AUTOREGRESS = SPECIAL_OFFSET + 1
 ANTICIPATE = SPECIAL_OFFSET + 2
 VOCAB_SIZE = ANTICIPATE+1
+
+VELOCITY_OFFSET = VOCAB_SIZE-128
 
 # interarrival-time (MIDI-like) vocab
 MIDI_TIME_OFFSET = 0

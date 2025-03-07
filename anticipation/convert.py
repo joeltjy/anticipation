@@ -5,10 +5,13 @@ Utilities for converting to and from Midi data and encoded/tokenized data.
 from collections import defaultdict
 
 import mido
-
+import sys
+import os
+sys.path.append(os.path.abspath(".."))
 from anticipation.config import *
 from anticipation.vocab import *
 from anticipation.ops import unpad
+
 
 
 def midi_to_interarrival(midifile, debug=False, stats=False):
@@ -259,11 +262,13 @@ def compound_to_midi(tokens, debug=False):
     return mid
 
 
-def compound_to_events(tokens, stats=False):
+def compound_to_events(tokens, stats=False, include_velocity = False):
     assert len(tokens) % 5 == 0
     tokens = tokens.copy()
 
     # remove velocities
+    velocities = tokens[4::5]
+
     del tokens[4::5]
 
     # combine (note, instrument)
@@ -272,23 +277,41 @@ def compound_to_events(tokens, stats=False):
     tokens[2::4] = [SEPARATOR if note == -1 else MAX_PITCH*instr + note
                     for note, instr in zip(tokens[2::4],tokens[3::4])]
     tokens[2::4] = [NOTE_OFFSET + tok for tok in tokens[2::4]]
-    del tokens[3::4]
+    
+    if include_velocity:
+        tokens[3::4] = velocities[0::1]
 
-    # max duration cutoff and set unknown durations to 250ms
-    truncations = sum([1 for tok in tokens[1::3] if tok >= MAX_DUR])
-    tokens[1::3] = [TIME_RESOLUTION//4 if tok == -1 else min(tok, MAX_DUR-1)
-                    for tok in tokens[1::3]]
-    tokens[1::3] = [DUR_OFFSET + tok for tok in tokens[1::3]]
+        # max duration cutoff and set unknown durations to 250ms
+        truncations = sum([1 for tok in tokens[1::4] if tok >= MAX_DUR])
+        tokens[1::4] = [TIME_RESOLUTION//4 if tok == -1 else min(tok, MAX_DUR-1)
+                        for tok in tokens[1::4]]
+        tokens[1::4] = [DUR_OFFSET + tok for tok in tokens[1::4]]
 
-    assert min(tokens[0::3]) >= 0
-    tokens[0::3] = [TIME_OFFSET + tok for tok in tokens[0::3]]
+        assert min(tokens[0::4]) >= 0
+        tokens[0::4] = [TIME_OFFSET + tok for tok in tokens[0::4]]
 
-    assert len(tokens) % 3 == 0
+        assert len(tokens) % 4 == 0
+    else:
+        del tokens[3::4]
+
+        # max duration cutoff and set unknown durations to 250ms
+        truncations = sum([1 for tok in tokens[1::3] if tok >= MAX_DUR])
+        tokens[1::3] = [TIME_RESOLUTION//4 if tok == -1 else min(tok, MAX_DUR-1)
+                        for tok in tokens[1::3]]
+        tokens[1::3] = [DUR_OFFSET + tok for tok in tokens[1::3]]
+
+        assert min(tokens[0::3]) >= 0
+        tokens[0::3] = [TIME_OFFSET + tok for tok in tokens[0::3]]
+
+        assert len(tokens) % 3 == 0
+
+
 
     if stats:
         return tokens, truncations
 
     return tokens
+
 
 
 def events_to_compound(tokens, debug=False):
@@ -338,5 +361,5 @@ def events_to_compound(tokens, debug=False):
 def events_to_midi(tokens, debug=False):
     return compound_to_midi(events_to_compound(tokens, debug=debug), debug=debug)
 
-def midi_to_events(midifile, debug=False):
-    return compound_to_events(midi_to_compound(midifile, debug=debug))
+def midi_to_events(midifile, debug=False, include_velocity = False):
+    return compound_to_events(midi_to_compound(midifile, debug=debug), include_velocity=include_velocity)

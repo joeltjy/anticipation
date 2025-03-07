@@ -1,7 +1,9 @@
 """
 Global configuration for anticipatory infilling models.
 """
-
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 # model hyper-parameters
 
 CONTEXT_SIZE = 1024                # model context
@@ -38,6 +40,11 @@ MIN_TRACK_EVENTS = 100             # exclude very short tracks (less than 100 ev
 LAKH_SPLITS = ['0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f']
 LAKH_VALID = ['e']
 LAKH_TEST = ['f']
+
+# Maestro dataset splits
+MAESTRO_SPLITS = ['0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f']
+MAESTRO_VALID = ['e']
+MAESTRO_TEST = ['f']
 
 # derived quantities
 
