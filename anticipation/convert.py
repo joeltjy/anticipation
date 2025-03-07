@@ -13,8 +13,8 @@ from anticipation.vocab import *
 from anticipation.ops import unpad
 
 
-
-def midi_to_interarrival(midifile, debug=False, stats=False):
+# TODO: add support for velocity
+def midi_to_interarrival(midifile, debug=False, stats=False, include_velocity = True):
     midi = mido.MidiFile(midifile)
 
     tokens = []
@@ -70,7 +70,7 @@ def midi_to_interarrival(midifile, debug=False, stats=False):
 
     return tokens
 
-
+# TODO: add support for velocity
 def interarrival_to_midi(tokens, debug=False):
     mid = mido.MidiFile()
     mid.ticks_per_beat = TIME_RESOLUTION // 2 # 2 beats/second at quarter=120
@@ -127,7 +127,7 @@ def interarrival_to_midi(tokens, debug=False):
 
     return mid
 
-
+# No changes needed
 def midi_to_compound(midifile, debug=False):
     if type(midifile) == str:
         midi = mido.MidiFile(midifile)
@@ -207,7 +207,7 @@ def midi_to_compound(midifile, debug=False):
 
     return tokens
 
-
+# No changes needed
 def compound_to_midi(tokens, debug=False):
     mid = mido.MidiFile()
     mid.ticks_per_beat = TIME_RESOLUTION // 2 # 2 beats/second at quarter=120
@@ -261,7 +261,7 @@ def compound_to_midi(tokens, debug=False):
 
     return mid
 
-
+# changed
 def compound_to_events(tokens, stats=False, include_velocity = False):
     assert len(tokens) % 5 == 0
     tokens = tokens.copy()
@@ -279,7 +279,7 @@ def compound_to_events(tokens, stats=False, include_velocity = False):
     tokens[2::4] = [NOTE_OFFSET + tok for tok in tokens[2::4]]
     
     if include_velocity:
-        tokens[3::4] = velocities[0::1]
+        tokens[3::4] = [VELOCITY_OFFSET + tok for tok in velocities[0::1]]
 
         # max duration cutoff and set unknown durations to 250ms
         truncations = sum([1 for tok in tokens[1::4] if tok >= MAX_DUR])
@@ -313,13 +313,16 @@ def compound_to_events(tokens, stats=False, include_velocity = False):
     return tokens
 
 
-
+# changed
 def events_to_compound(tokens, debug=False, include_velocity = False):
     tokens = unpad(tokens)
 
     tokens_per_event = 3
     if include_velocity:
         tokens_per_event = 4
+
+    # move all velocity tokens to zero-offset
+    tokens = [tok - VELOCITY_OFFSET if tok >= VELOCITY_OFFSET else tok for tok in tokens]
 
     # move all tokens to zero-offset for synthesis
     tokens = [tok - CONTROL_OFFSET if tok >= CONTROL_OFFSET and tok != SEPARATOR else tok

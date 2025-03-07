@@ -32,6 +32,7 @@ def print_tokens(tokens, include_velocity = False):
                 note = note - NOTE_OFFSET
                 instr = note//2**7
                 pitch = note - (2**7)*instr
+                vel = vel - VELOCITY_OFFSET
                 print(j, tm, dur, instr, pitch, vel)
             else:
                 tm = tm - ATIME_OFFSET
@@ -39,6 +40,7 @@ def print_tokens(tokens, include_velocity = False):
                 note = note - ANOTE_OFFSET
                 instr = note//2**7
                 pitch = note - (2**7)*instr
+                vel = vel - AVELOCITY_OFFSET
                 print(j, tm, dur, instr, pitch, vel, '(A)')
     else:
         for j, (tm, dur, note) in enumerate(zip(tokens[0::3],tokens[1::3],tokens[2::3])):

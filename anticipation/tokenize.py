@@ -72,12 +72,12 @@ def extract_instruments(all_events, instruments):
     return events, controls
 
 
-def maybe_tokenize(compound_tokens):
+def maybe_tokenize(compound_tokens, include_velocity = False):
     # skip sequences with very few events
     if len(compound_tokens) < COMPOUND_SIZE*MIN_TRACK_EVENTS:
         return None, None, 1 # short track
 
-    events, truncations = compound_to_events(compound_tokens, stats=True)
+    events, truncations = compound_to_events(compound_tokens, stats=True, include_velocity=include_velocity)
     end_time = ops.max_time(events, seconds=False)
 
     # don't want to deal with extremely short tracks
@@ -95,7 +95,7 @@ def maybe_tokenize(compound_tokens):
     return events, truncations, 0
 
 
-def tokenize_ia(datafiles, output, augment_factor, idx=0, debug=False):
+def tokenize_ia(datafiles, output, augment_factor, idx=0, debug=False, include_velocity = False):
     assert augment_factor == 1 # can't augment interarrival-tokenized data
 
     all_truncations = 0
@@ -107,7 +107,7 @@ def tokenize_ia(datafiles, output, augment_factor, idx=0, debug=False):
         concatenated_tokens = []
         for j, filename in tqdm(list(enumerate(datafiles)), desc=f'#{idx}', position=idx+1, leave=True):
             with open(filename, 'r') as f:
-                _, _, status = maybe_tokenize([int(token) for token in f.read().split()])
+                _, _, status = maybe_tokenize([int(token) for token in f.read().split()], include_velocity)
 
             if status > 0:
                 stats[status-1] += 1
@@ -135,7 +135,7 @@ def tokenize_ia(datafiles, output, augment_factor, idx=0, debug=False):
     return (seqcount, rest_count, stats[0], stats[1], stats[2], stats[3], all_truncations)
 
 
-def tokenize(datafiles, output, augment_factor, idx=0, debug=False):
+def tokenize(datafiles, output, augment_factor, idx=0, debug=False, include_velocity = False):
     tokens = []
     all_truncations = 0
     seqcount = rest_count = 0
@@ -146,7 +146,7 @@ def tokenize(datafiles, output, augment_factor, idx=0, debug=False):
         concatenated_tokens = []
         for j, filename in tqdm(list(enumerate(datafiles)), desc=f'#{idx}', position=idx+1, leave=True):
             with open(filename, 'r') as f:
-                all_events, truncations, status = maybe_tokenize([int(token) for token in f.read().split()])
+                all_events, truncations, status = maybe_tokenize([int(token) for token in f.read().split()], include_velocity=include_velocity)
 
             if status > 0:
                 stats[status-1] += 1

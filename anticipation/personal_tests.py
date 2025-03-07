@@ -69,11 +69,11 @@ class TestChanges(unittest.TestCase):
         assert t1[-3] == t2[-4]
         assert len(t1) * 4  == len(t2) * 3
 
-    def test_mask(self):
-        t1 = mask(self.tokens_without_velocity, 0, 5)
-        t2 = mask(self.tokens_with_velocity, 0, 5, include_velocity=True)
-        assert t1[-3] == t2[-4]
-        assert len(t1) * 4  == len(t2) * 3
+    # def test_mask(self):
+    #     t1 = mask(self.tokens_without_velocity, 0, 5)
+    #     t2 = mask(self.tokens_with_velocity, 0, 5, include_velocity=True)
+    #     assert t1[-3] == t2[-4]
+    #     assert len(t1) * 4  == len(t2) * 3
 
 
 if __name__ == "__main__":

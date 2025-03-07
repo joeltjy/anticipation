@@ -50,7 +50,7 @@ MAESTRO_TEST = ['f']
 
 MAX_TIME = TIME_RESOLUTION*MAX_TIME_IN_SECONDS
 MAX_DUR = TIME_RESOLUTION*MAX_DURATION_IN_SECONDS
-
+MAX_VELOCITY = 127
 MAX_INTERARRIVAL = TIME_RESOLUTION*MAX_INTERARRIVAL_IN_SECONDS
 
 
@@ -60,6 +60,7 @@ if __name__ == '__main__':
     print('Vocabulary constants:')
     print(f'  -> maximum time of a sequence: {MAX_TIME_IN_SECONDS}s')
     print(f'  -> maximum duration of a note: {MAX_DURATION_IN_SECONDS}s')
+    print(f'  -> maximum velocity: {MAX_VELOCITY}')
     print(f'  -> time resolution: {TIME_RESOLUTION}bins/s ({1000//TIME_RESOLUTION}ms)')
     print(f'  -> maximum interarrival-time (MIDI-like encoding): {MAX_INTERARRIVAL_IN_SECONDS}s')
     print('Preprocessing constants:')

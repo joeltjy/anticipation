@@ -21,14 +21,19 @@ ATIME_OFFSET = CONTROL_OFFSET + 0
 ADUR_OFFSET = ATIME_OFFSET + MAX_TIME
 ANOTE_OFFSET = ADUR_OFFSET + MAX_DUR
 
+
 # the special block
 SPECIAL_OFFSET = ANOTE_OFFSET + MAX_NOTE
 SEPARATOR = SPECIAL_OFFSET
 AUTOREGRESS = SPECIAL_OFFSET + 1
 ANTICIPATE = SPECIAL_OFFSET + 2
-VOCAB_SIZE = ANTICIPATE+1
 
-VELOCITY_OFFSET = VOCAB_SIZE-128
+
+# velocities
+VELOCITY_OFFSET = ANTICIPATE+1
+AVELOCITY_OFFSET = VELOCITY_OFFSET + MAX_VELOCITY + 1
+VOCAB_SIZE = AVELOCITY_OFFSET + MAX_VELOCITY + 1
+
 
 # interarrival-time (MIDI-like) vocab
 MIDI_TIME_OFFSET = 0
@@ -44,10 +49,12 @@ if __name__ == '__main__':
     print('  -> duration offset :', DUR_OFFSET)
     print('  -> note offset :', NOTE_OFFSET)
     print('  -> rest token: ', REST)
+    print('  -> velocity offset: ', VELOCITY_OFFSET)
     print('Anticipated Control Offset: ', CONTROL_OFFSET)
     print('  -> anticipated time offset :', ATIME_OFFSET)
     print('  -> anticipated duration offset :', ADUR_OFFSET)
     print('  -> anticipated note offset :', ANOTE_OFFSET)
+    print('  -> anticipated velocity offset: ', AVELOCITY_OFFSET)
     print('Special Token Offset: ', SPECIAL_OFFSET)
     print('  -> separator token: ', SEPARATOR)
     print('  -> autoregression flag: ', AUTOREGRESS)
