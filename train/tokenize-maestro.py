@@ -1,10 +1,11 @@
 import os
+import sys
 from argparse import ArgumentParser
 from multiprocessing import Pool, RLock
 from glob import glob
 
 from tqdm import tqdm
-
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from anticipation.config import *
 from anticipation.tokenize import tokenize, tokenize_ia
 from train_utils import *
@@ -13,9 +14,9 @@ def main(args):
     encoding = 'interarrival' if args.interarrival else 'arrival'
     print('Tokenizing Maestro Dataset')
     print(f'  encoding type: {encoding}')
-    print(f'  train split: {[s for s in LAKH_SPLITS if s not in LAKH_VALID + LAKH_TEST]}')
-    print(f'  validation split: {LAKH_VALID}')
-    print(f'  test split: {LAKH_TEST}')
+    print(f'  train split: {[s for s in MAESTRO_SPLITS if s not in MAESTRO_VALID + MAESTRO_TEST]}')
+    print(f'  validation split: {MAESTRO_VALID}')
+    print(f'  test split: {MAESTRO_TEST}')
 
     print('Tokenization parameters:')
     print(f'  anticipation interval = {DELTA}s')
@@ -24,20 +25,22 @@ def main(args):
     print(f'  min track length = {MIN_TRACK_TIME_IN_SECONDS}s')
     print(f'  min track events = {MIN_TRACK_EVENTS}')
 
-    split_all_compound_files(args.datadir, '/**/*.compound.txt')
 
-    paths = [os.path.join(args.datadir, s) for s in LAKH_SPLITS]
+    print(f"Data directory: {args.datadir}")
+    split_all_compound_files(args.datadir, '**/*.compound.txt')
+
+    paths = [os.path.join(args.datadir, s) for s in MAESTRO_SPLITS]
     files = [glob(f'{p}/*.compound.txt') for p in paths]
-    outputs = [os.path.join(args.datadir, f'tokenized-events-{s}.txt') for s in LAKH_SPLITS]
+    outputs = [os.path.join(args.datadir, f'tokenized-events-{s}.txt') for s in MAESTRO_SPLITS]
 
     # don't augment the valid/test splits
-    augment = [1 if s in LAKH_VALID or s in LAKH_TEST else args.augment for s in LAKH_SPLITS]
+    augment = [1 if s in MAESTRO_VALID or s in MAESTRO_TEST else args.augment for s in MAESTRO_SPLITS]
 
     # parallel tokenization drops the last chunk of < M tokens
     # if concerned about waste: process larger groups of datafiles
     func = tokenize_ia if args.interarrival else tokenize
     with Pool(processes=PREPROC_WORKERS, initargs=(RLock(),), initializer=tqdm.set_lock) as pool:
-        results = pool.starmap(func, zip(files, outputs, augment, range(len(LAKH_SPLITS))))
+        results = pool.starmap(func, zip(files, outputs, augment, range(len(MAESTRO_SPLITS))))
 
     seq_count, rest_count, too_short, too_long, too_manyinstr, discarded_seqs, truncations \
             = (sum(x) for x in zip(*results))

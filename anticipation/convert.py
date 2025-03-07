@@ -314,41 +314,62 @@ def compound_to_events(tokens, stats=False, include_velocity = False):
 
 
 
-def events_to_compound(tokens, debug=False):
+def events_to_compound(tokens, debug=False, include_velocity = False):
     tokens = unpad(tokens)
+
+    tokens_per_event = 3
+    if include_velocity:
+        tokens_per_event = 4
 
     # move all tokens to zero-offset for synthesis
     tokens = [tok - CONTROL_OFFSET if tok >= CONTROL_OFFSET and tok != SEPARATOR else tok
               for tok in tokens]
 
     # remove type offsets
-    tokens[0::3] = [tok - TIME_OFFSET if tok != SEPARATOR else tok for tok in tokens[0::3]]
-    tokens[1::3] = [tok - DUR_OFFSET if tok != SEPARATOR else tok for tok in tokens[1::3]]
-    tokens[2::3] = [tok - NOTE_OFFSET if tok != SEPARATOR else tok for tok in tokens[2::3]]
+    tokens[0::tokens_per_event] = [tok - TIME_OFFSET if tok != SEPARATOR else tok for tok in tokens[0::tokens_per_event]]
+    tokens[1::tokens_per_event] = [tok - DUR_OFFSET if tok != SEPARATOR else tok for tok in tokens[1::tokens_per_event]]
+    tokens[2::tokens_per_event] = [tok - NOTE_OFFSET if tok != SEPARATOR else tok for tok in tokens[2::tokens_per_event]]
 
     offset = 0 # add max time from previous track for synthesis
     track_max = 0 # keep track of max time in track
-    for j, (time,dur,note) in enumerate(zip(tokens[0::3],tokens[1::3],tokens[2::3])):
-        if note == SEPARATOR:
-            offset += track_max
-            track_max = 0
-            if debug:
-                print('Sequence Boundary')
-        else:
-            track_max = max(track_max, time+dur)
-            tokens[3*j] += offset
+    
+    if include_velocity:
+        for j, (time,dur,note) in enumerate(zip(tokens[0::4],tokens[1::4],tokens[2::4])):
+            if note == SEPARATOR:
+                offset += track_max
+                track_max = 0
+                if debug:
+                    print('Sequence Boundary')
+            else:
+                track_max = max(track_max, time+dur)
+                tokens[4*j] += offset
+    else:
+        for j, (time,dur,note) in enumerate(zip(tokens[0::3],tokens[1::3],tokens[2::3])):
+            if note == SEPARATOR:
+                offset += track_max
+                track_max = 0
+                if debug:
+                    print('Sequence Boundary')
+            else:
+                track_max = max(track_max, time+dur)
+                tokens[3*j] += offset
+        
 
     # strip sequence separators
-    assert len([tok for tok in tokens if tok == SEPARATOR]) % 3 == 0
+    assert len([tok for tok in tokens if tok == SEPARATOR]) % tokens_per_event == 0
     tokens = [tok for tok in tokens if tok != SEPARATOR]
 
-    assert len(tokens) % 3 == 0
-    out = 5*(len(tokens)//3)*[0]
-    out[0::5] = tokens[0::3]
-    out[1::5] = tokens[1::3]
-    out[2::5] = [tok - (2**7)*(tok//2**7) for tok in tokens[2::3]]
-    out[3::5] = [tok//2**7 for tok in tokens[2::3]]
-    out[4::5] = (len(tokens)//3)*[72] # default velocity
+    assert len(tokens) % tokens_per_event == 0
+    out = 5*(len(tokens)//tokens_per_event)*[0]
+    out[0::5] = tokens[0::tokens_per_event]
+    out[1::5] = tokens[1::tokens_per_event]
+    out[2::5] = [tok - (2**7)*(tok//2**7) for tok in tokens[2::tokens_per_event]]
+    out[3::5] = [tok//2**7 for tok in tokens[2::tokens_per_event]]
+    
+    if include_velocity:
+        out[4::5] = tokens[3::4]
+    else:
+        out[4::5] = (len(tokens)//3)*[72] # default velocity
 
     assert max(out[1::5]) < MAX_DUR
     assert max(out[2::5]) < MAX_PITCH
