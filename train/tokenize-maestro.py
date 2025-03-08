@@ -10,6 +10,12 @@ from anticipation.config import *
 from anticipation.tokenize import tokenize, tokenize_ia
 from train_utils import *
 
+def tokenize_with_velocity(datafiles, output, augment_factor, idx=0, debug=False):
+    return tokenize(datafiles, output, augment_factor, idx, debug, include_velocity=True)
+
+def tokenize_ia_with_velocity(datafiles, output, augment_factor, idx=0, debug=False):
+    return tokenize_ia(datafiles, output, augment_factor, idx, debug, include_velocity=True)
+
 def main(args):
     encoding = 'interarrival' if args.interarrival else 'arrival'
     print('Tokenizing Maestro Dataset')
@@ -27,18 +33,24 @@ def main(args):
 
 
     print(f"Data directory: {args.datadir}")
-    split_all_compound_files(args.datadir, '**/*.compound.txt')
+    #split_all_compound_files(args.datadir, '**/*.compound.txt')
 
+    include_velocity = True
     paths = [os.path.join(args.datadir, s) for s in MAESTRO_SPLITS]
     files = [glob(f'{p}/*.compound.txt') for p in paths]
-    outputs = [os.path.join(args.datadir, f'tokenized-events-{s}.txt') for s in MAESTRO_SPLITS]
+    outputs = [os.path.join(args.datadir, f'tokenized-events-with-velocity-{s}.txt') for s in MAESTRO_SPLITS]
 
+
+    print("Number of files", len(files))
     # don't augment the valid/test splits
     augment = [1 if s in MAESTRO_VALID or s in MAESTRO_TEST else args.augment for s in MAESTRO_SPLITS]
 
     # parallel tokenization drops the last chunk of < M tokens
     # if concerned about waste: process larger groups of datafiles
-    func = tokenize_ia if args.interarrival else tokenize
+    if include_velocity:
+        func = tokenize_ia_with_velocity if args.interarrival else tokenize_with_velocity
+    else:
+        func = tokenize_ia if args.interarrival else tokenize
     with Pool(processes=PREPROC_WORKERS, initargs=(RLock(),), initializer=tqdm.set_lock) as pool:
         results = pool.starmap(func, zip(files, outputs, augment, range(len(MAESTRO_SPLITS))))
 

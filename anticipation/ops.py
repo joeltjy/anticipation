@@ -10,7 +10,9 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from anticipation.config import *
 from anticipation.vocab import *
 
+# all changes done
 
+# changed 
 def print_tokens(tokens, include_velocity = False):
     print('---------------------')
     if include_velocity:
@@ -70,7 +72,7 @@ def print_tokens(tokens, include_velocity = False):
                 pitch = note - (2**7)*instr
                 print(j, tm, dur, instr, pitch, '(A)')
 
-
+# changed 
 def clip(tokens, start, end, clip_duration=True, seconds=True, include_velocity = False):
     if seconds:
         start = int(TIME_RESOLUTION*start)
@@ -117,7 +119,7 @@ def clip(tokens, start, end, clip_duration=True, seconds=True, include_velocity 
 
         return new_tokens
 
-
+# changed 
 def mask(tokens, start, end, include_velocity = False):
     new_tokens = []
     if include_velocity:
@@ -147,7 +149,7 @@ def mask(tokens, start, end, include_velocity = False):
 
         return new_tokens
 
-
+# changed 
 def delete(tokens, criterion, include_velocity = False):
     new_tokens = []
     if include_velocity:
@@ -168,7 +170,7 @@ def delete(tokens, criterion, include_velocity = False):
 
         return new_tokens
 
-
+# changed 
 def sort(tokens, include_velocity = False):
     """ sort sequence of events or controls (but not both) """
 
@@ -185,7 +187,7 @@ def sort(tokens, include_velocity = False):
 
     return sorted_tokens
 
-
+# changed
 def split(tokens, include_velocity = False):
     """ split a sequence into events and controls """
 
@@ -207,7 +209,7 @@ def split(tokens, include_velocity = False):
 
     return events, controls
 
-
+# changed
 def pad(tokens, end_time=None, density=TIME_RESOLUTION, include_velocity = False):
     end_time = TIME_OFFSET+(end_time if end_time else max_time(tokens, seconds=False))
     new_tokens = []
@@ -249,7 +251,7 @@ def pad(tokens, end_time=None, density=TIME_RESOLUTION, include_velocity = False
 
         return new_tokens
 
-
+# changed
 def unpad(tokens, include_velocity = False):
     new_tokens = []
 
@@ -270,7 +272,7 @@ def unpad(tokens, include_velocity = False):
 
         return new_tokens
 
-
+# changed
 def anticipate(events, controls, delta=DELTA*TIME_RESOLUTION, include_velocity = False):
     """
     Interleave a sequence of events with anticipated controls.
@@ -315,7 +317,7 @@ def anticipate(events, controls, delta=DELTA*TIME_RESOLUTION, include_velocity =
 
     return tokens, controls
 
-
+# changed
 def sparsity(tokens, include_velocity = False):
     max_dt = 0
     previous_time = TIME_OFFSET+0
@@ -341,7 +343,7 @@ def sparsity(tokens, include_velocity = False):
 
         return max_dt
 
-
+# changed
 def min_time(tokens, seconds=True, instr=None, include_velocity = True):
     mt = None
 
@@ -386,7 +388,7 @@ def min_time(tokens, seconds=True, instr=None, include_velocity = True):
         if mt is None: mt = 0
         return mt/float(TIME_RESOLUTION) if seconds else mt
 
-
+# changed
 def max_time(tokens, seconds=True, instr=None, include_velocity=False):
     mt = 0
 
@@ -416,7 +418,7 @@ def max_time(tokens, seconds=True, instr=None, include_velocity=False):
 
     return mt/float(TIME_RESOLUTION) if seconds else mt
 
-
+# changed
 def get_instruments(tokens, include_velocity = False):
     instruments = defaultdict(int)
 
@@ -447,13 +449,13 @@ def get_instruments(tokens, include_velocity = False):
 
         return instruments
 
-
+# changed
 def translate(tokens, dt, seconds=False, include_velocity = False):
     if seconds:
         dt = int(TIME_RESOLUTION*dt)
 
     new_tokens = []
-
+    print("translating", tokens[:100])
     if include_velocity:
         for (time, dur, note, vel) in zip(tokens[0::4],tokens[1::4],tokens[2::4], tokens[3::4]):
             # stop translating after EOT
@@ -490,5 +492,11 @@ def translate(tokens, dt, seconds=False, include_velocity = False):
 
         return new_tokens
 
-def combine(events, controls):
-    return sort(events + [token - CONTROL_OFFSET for token in controls])
+# changed
+def combine(events, controls, include_velocity = False):
+    def remove_control(tok):
+        if tok >= AVELOCITY_OFFSET:
+            return tok - AVELOCITY_OFFSET + VELOCITY_OFFSET
+        return tok - CONTROL_OFFSET
+    processed_controls = [remove_control(tok) for tok in controls]
+    return sort(events + processed_controls, include_velocity=include_velocity)

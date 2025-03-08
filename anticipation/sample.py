@@ -13,8 +13,8 @@ from anticipation import ops
 from anticipation.config import *
 from anticipation.vocab import *
 
-
-def safe_logits(logits, idx):
+# TODO: account for velocity
+def safe_logits(logits, idx, include_velocity = False):
     logits[CONTROL_OFFSET:SPECIAL_OFFSET] = -float('inf') # don't generate controls
     logits[SPECIAL_OFFSET:] = -float('inf')               # don't generate special tokens
 
@@ -31,7 +31,7 @@ def safe_logits(logits, idx):
 
     return logits
 
-
+# no change needed
 def nucleus(logits, top_p):
     # from HF implementation
     if top_p < 1.0:
@@ -51,7 +51,7 @@ def nucleus(logits, top_p):
 
     return logits
 
-
+# no change needed
 def future_logits(logits, curtime):
     """ don't sample events in the past """
     if curtime > 0:
@@ -59,10 +59,10 @@ def future_logits(logits, curtime):
 
     return logits
 
-
-def instr_logits(logits, full_history):
+# changed
+def instr_logits(logits, full_history, include_velocity = False):
     """ don't sample more than 16 instruments """
-    instrs = ops.get_instruments(full_history)
+    instrs = ops.get_instruments(full_history, include_velocity=include_velocity)
     if len(instrs) < 15: # 16 - 1 to account for the reserved drum track
         return logits
 
@@ -72,7 +72,7 @@ def instr_logits(logits, full_history):
 
     return logits
 
-
+# to change
 def add_token(model, z, tokens, top_p, current_time, debug=False):
     assert len(tokens) % 3 == 0
 
@@ -106,7 +106,7 @@ def add_token(model, z, tokens, top_p, current_time, debug=False):
 
     return new_token
 
-
+# to change
 def generate(model, start_time, end_time, inputs=None, controls=None, top_p=1.0, debug=False, delta=DELTA*TIME_RESOLUTION):
     if inputs is None:
         inputs = []
@@ -193,7 +193,7 @@ def generate(model, start_time, end_time, inputs=None, controls=None, top_p=1.0,
     events, _ = ops.split(tokens)
     return ops.sort(ops.unpad(events) + future)
 
-
+# to change
 def generate_ar(model, start_time, end_time, inputs=None, controls=None, top_p=1.0, debug=False, delta=DELTA*TIME_RESOLUTION):
     if inputs is None:
         inputs = []

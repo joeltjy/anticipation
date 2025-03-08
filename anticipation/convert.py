@@ -12,13 +12,18 @@ from anticipation.config import *
 from anticipation.vocab import *
 from anticipation.ops import unpad
 
+# Done changing
 
-# TODO: add support for velocity
-def midi_to_interarrival(midifile, debug=False, stats=False, include_velocity = True):
+# changed
+def midi_to_interarrival(midifile, debug=False, stats=False, include_velocity = False):
     midi = mido.MidiFile(midifile)
 
     tokens = []
     dt = 0
+
+    tokens_per_event = 2
+    if include_velocity:
+        tokens_per_event = 3
 
     instruments = defaultdict(int) # default to code 0 = piano
     tempo = 500000 # default tempo: 500000 microseconds per beat
@@ -44,6 +49,8 @@ def midi_to_interarrival(midifile, debug=False, stats=False, include_velocity = 
             inst = 128 if message.channel == 9 else instruments[message.channel]
             offset = MIDI_START_OFFSET if message.type == 'note_on' and message.velocity > 0 else MIDI_END_OFFSET
             tokens.append(offset + (2**7)*inst + message.note)
+            if include_velocity and message.type == 'note_on':
+                tokens.append(message.velocity + MIDI_VELOCITY_OFFSET)
             dt = 0
         elif message.type == 'set_tempo':
             tempo = message.tempo
@@ -70,17 +77,21 @@ def midi_to_interarrival(midifile, debug=False, stats=False, include_velocity = 
 
     return tokens
 
-# TODO: add support for velocity
-def interarrival_to_midi(tokens, debug=False):
+# changed
+def interarrival_to_midi(tokens, debug=False, include_velocity = False):
     mid = mido.MidiFile()
     mid.ticks_per_beat = TIME_RESOLUTION // 2 # 2 beats/second at quarter=120
 
     track_idx = {} # maps instrument to (track number, current time)
     time_in_ticks = 0
     num_tracks = 0
-    for token in tokens:
+    for token, next in zip(tokens, tokens[1:]+[0]):
         if token == MIDI_SEPARATOR:
             continue
+
+
+        if token > MIDI_VELOCITY_OFFSET:
+            continue # we will have already processed it while processing the previous onset token.
 
         if token < MIDI_START_OFFSET:
             time_in_ticks += token - MIDI_TIME_OFFSET
@@ -88,7 +99,9 @@ def interarrival_to_midi(tokens, debug=False):
             token -= MIDI_START_OFFSET
             instrument = token // 2**7
             pitch = token - (2**7)*instrument
-
+            vel = next - MIDI_VELOCITY_OFFSET
+            # print(token, next)
+            # print(instrument, pitch, vel, time_in_ticks)
             try:
                 track, previous_time, idx = track_idx[instrument]
             except KeyError:
@@ -106,7 +119,7 @@ def interarrival_to_midi(tokens, debug=False):
                 if num_tracks == 9:
                     num_tracks += 1 # skip the drums track
 
-            track.append(mido.Message('note_on', note=pitch, channel=idx, velocity=96, time=time_in_ticks-previous_time))
+            track.append(mido.Message('note_on', note=pitch, channel=idx, velocity=vel, time=time_in_ticks-previous_time))
             track_idx[instrument] = (track, time_in_ticks, idx)
         else:
             token -= MIDI_END_OFFSET
@@ -381,9 +394,9 @@ def events_to_compound(tokens, debug=False, include_velocity = False):
 
     return out
 
-
-def events_to_midi(tokens, debug=False):
-    return compound_to_midi(events_to_compound(tokens, debug=debug), debug=debug)
-
+# changed
+def events_to_midi(tokens, debug=False, include_velocity = False):
+    return compound_to_midi(events_to_compound(tokens, debug=debug, include_velocity=include_velocity), debug=debug)
+# changed
 def midi_to_events(midifile, debug=False, include_velocity = False):
     return compound_to_events(midi_to_compound(midifile, debug=debug), include_velocity=include_velocity)
