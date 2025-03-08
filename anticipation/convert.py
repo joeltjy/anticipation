@@ -12,7 +12,7 @@ from anticipation.config import *
 from anticipation.vocab import *
 from anticipation.ops import unpad
 
-# Done changing
+# all changes done
 
 # changed
 def midi_to_interarrival(midifile, debug=False, stats=False, include_velocity = False):

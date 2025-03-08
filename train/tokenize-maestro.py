@@ -33,12 +33,12 @@ def main(args):
 
 
     print(f"Data directory: {args.datadir}")
-    #split_all_compound_files(args.datadir, '**/*.compound.txt')
+    split_all_compound_files(args.datadir, '**/*.compound.txt')
 
-    include_velocity = True
+    include_velocity = False
     paths = [os.path.join(args.datadir, s) for s in MAESTRO_SPLITS]
     files = [glob(f'{p}/*.compound.txt') for p in paths]
-    outputs = [os.path.join(args.datadir, f'tokenized-events-with-velocity-{s}.txt') for s in MAESTRO_SPLITS]
+    outputs = [os.path.join(args.datadir, f'tokenized-events-{s}.txt') for s in MAESTRO_SPLITS]
 
 
     print("Number of files", len(files))

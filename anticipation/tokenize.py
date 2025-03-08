@@ -11,7 +11,7 @@ from anticipation.config import *
 from anticipation.vocab import *
 from anticipation.convert import compound_to_events, midi_to_interarrival
 
-# done all changes
+# all changes done
 
 # changed
 def extract_spans(all_events, rate, include_velocity=False):
