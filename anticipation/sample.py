@@ -275,7 +275,7 @@ def generate(model, start_time, end_time, inputs=None, controls=None, top_p=1.0,
     events, _ = ops.split(tokens, include_velocity=include_velocity)
     return ops.sort(ops.unpad(events, include_velocity=include_velocity) + future, include_velocity=include_velocity)
 
-# to change
+# changed
 def generate_ar(model, start_time, end_time, inputs=None, controls=None, top_p=1.0, debug=False, delta=DELTA*TIME_RESOLUTION, include_velocity = False):
     if inputs is None:
         inputs = []
@@ -297,25 +297,23 @@ def generate_ar(model, start_time, end_time, inputs=None, controls=None, top_p=1
 
     inputs = ops.sort(inputs + controls, include_velocity=include_velocity)
 
-    # STOPPED HERE
-    
     # prompt is events up to start_time
-    prompt = ops.pad(ops.clip(inputs, 0, start_time, clip_duration=False, seconds=False), start_time)
+    prompt = ops.pad(ops.clip(inputs, 0, start_time, clip_duration=False, seconds=False, include_velocity=include_velocity), start_time, include_velocity=include_velocity)
     if debug:
         print('Prompt')
-        ops.print_tokens(prompt)
+        ops.print_tokens(prompt, include_velocity=include_velocity)
 
     # treat events beyond start_time as controls
-    controls = ops.clip(inputs, start_time+1, ops.max_time(inputs, seconds=False), clip_duration=False, seconds=False)
+    controls = ops.clip(inputs, start_time+1, ops.max_time(inputs, seconds=False, include_velocity=include_velocity), clip_duration=False, seconds=False, include_velocity=include_velocity)
     if debug:
         print('Future')
-        ops.print_tokens(controls)
+        ops.print_tokens(controls, include_velocity=include_velocity)
 
     z = [AUTOREGRESS]
     if debug:
         print('AR Mode')
 
-    current_time = ops.max_time(prompt, seconds=False)
+    current_time = ops.max_time(prompt, seconds=False, include_velocity=include_velocity)
     if debug:
         print('Current time:', current_time)
 
@@ -323,14 +321,18 @@ def generate_ar(model, start_time, end_time, inputs=None, controls=None, top_p=1
     with tqdm(range(end_time-start_time)) as progress:
         if controls:
             atime, adur, anote = controls[0:3]
-            anticipated_tokens = controls[3:]
+            if include_velocity:
+                avel = controls[3]
+                anticipated_tokens = controls[4:]
+            else:
+                anticipated_tokens = controls[3:]
             anticipated_time = atime - TIME_OFFSET
         else:
             # nothing to anticipate
             anticipated_time = math.inf
 
         while True:
-            new_token = add_token(model, z, tokens, top_p, max(start_time,current_time))
+            new_token = add_token(model, z, tokens, top_p, max(start_time,current_time), include_velocity=include_velocity)
             new_time = new_token[0] - TIME_OFFSET
             if new_time >= end_time:
                 break
@@ -341,15 +343,25 @@ def generate_ar(model, start_time, end_time, inputs=None, controls=None, top_p=1
 
             # backfill anything that should have come before the new token
             while current_time >= anticipated_time:
-                tokens.extend([atime, adur, anote])
+                if include_velocity:
+                    tokens.extend([atime, adur, anote, avel])
+                else:
+                    tokens.extend([atime, adur, anote])
                 if debug:
                     note = anote - NOTE_OFFSET
                     instr = note//2**7
-                    print('A', atime - TIME_OFFSET, adur - DUR_OFFSET, instr, note - (2**7)*instr)
+                    if include_velocity:
+                        print('A', atime - TIME_OFFSET, adur - DUR_OFFSET, instr, note - (2**7)*instr, avel - VELOCITY_OFFSET)
+                    else:
+                        print('A', atime - TIME_OFFSET, adur - DUR_OFFSET, instr, note - (2**7)*instr)
 
                 if len(anticipated_tokens) > 0:
                     atime, adur, anote = anticipated_tokens[0:3]
-                    anticipated_tokens = anticipated_tokens[3:]
+                    if include_velocity:
+                        avel = anticipated_tokens[3]
+                        anticipated_tokens = anticipated_tokens[4:]
+                    else:
+                        anticipated_tokens = anticipated_tokens[3:]
                     anticipated_time = atime - TIME_OFFSET
                 else:
                     # nothing more to anticipate
@@ -359,12 +371,21 @@ def generate_ar(model, start_time, end_time, inputs=None, controls=None, top_p=1
                 new_note = new_token[2] - NOTE_OFFSET
                 new_instr = new_note//2**7
                 new_pitch = new_note - (2**7)*new_instr
-                print('C', new_time, new_token[1] - DUR_OFFSET, new_instr, new_pitch)
+                if include_velocity:
+                    new_vel = new_token[3] - VELOCITY_OFFSET
+                    if new_vel > 127:
+                        new_vel -= 128
+                    print('C', new_time, new_token[1] - DUR_OFFSET, new_instr, new_pitch, new_vel)
+                else:
+                    print('C', new_time, new_token[1] - DUR_OFFSET, new_instr, new_pitch)
 
             tokens.extend(new_token)
             progress.update(dt)
 
     if anticipated_time != math.inf:
-        tokens.extend([atime, adur, anote])
+        if include_velocity:
+            tokens.extend([atime, adur, anote, avel])
+        else:
+            tokens.extend([atime, adur, anote])
 
-    return ops.sort(ops.unpad(tokens) + controls)
+    return ops.sort(ops.unpad(tokens, include_velocity=include_velocity) + controls, include_velocity=include_velocity)
