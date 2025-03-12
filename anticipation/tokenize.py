@@ -262,7 +262,7 @@ def tokenize(datafiles, output, augment_factor, idx=0, debug=False, include_velo
                 concatenated_tokens.extend(tokens)
 
                 # write out full sequences to file
-                max_length = CONTEXT_SIZE - CONTEXT_SIZE % tokens_per_event
+                max_length = (CONTEXT_SIZE-1) - (CONTEXT_SIZE-1) % tokens_per_event
                 while len(concatenated_tokens) >= max_length:
                     seq = concatenated_tokens[0:max_length]
                     concatenated_tokens = concatenated_tokens[max_length:]
