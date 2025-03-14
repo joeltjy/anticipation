@@ -328,7 +328,9 @@ def compound_to_events(tokens, stats=False, include_velocity = False):
 
 # changed
 def events_to_compound(tokens, debug=False, include_velocity = False):
-    tokens = unpad(tokens)
+    tokens = unpad(tokens, include_velocity=include_velocity)
+
+    print("converting event to compound", len(tokens))
 
     tokens_per_event = 3
     if include_velocity:
