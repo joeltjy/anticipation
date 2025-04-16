@@ -31,7 +31,8 @@ def main(args):
     print(f'  min track length = {MIN_TRACK_TIME_IN_SECONDS}s')
     print(f'  min track events = {MIN_TRACK_EVENTS}')
 
-
+    # if the files are not in the required format i.e. the files are in folders 0, 1, ..., E (hex) then
+    # run this to do this splitting. Then the rest of the preprocessing will work.
     print(f"Data directory: {args.datadir}")
     split_all_compound_files(args.datadir, '**/*.compound.txt')
 

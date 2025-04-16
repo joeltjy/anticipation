@@ -385,7 +385,8 @@ def events_to_compound(tokens, debug=False, include_velocity = False):
     out[3::5] = [tok//2**7 for tok in tokens[2::tokens_per_event]]
     
     if include_velocity:
-        out[4::5] = tokens[3::4]
+        # Constrain velocity values to valid MIDI range (0-127)
+        out[4::5] = [min(max(tok, 0), 127) for tok in tokens[3::4]]
     else:
         out[4::5] = (len(tokens)//3)*[72] # default velocity
 

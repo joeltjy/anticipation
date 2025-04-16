@@ -92,6 +92,101 @@ def extract_random(all_events, rate, include_velocity=False):
 
         return events, controls
 
+
+def pitch_augmentation(all_events, pitch_add=None, include_velocity=False):
+    events = []
+    
+    if pitch_add is None:
+        pitch_add = np.random.randint(-12, 12)
+    
+    if include_velocity:
+        for time, dur, note, vel in zip(all_events[0::4],all_events[1::4],all_events[2::4], all_events[3::4]):
+            assert note not in [SEPARATOR, REST] # shouldn't be in the sequence yet
+            assert note < CONTROL_OFFSET
+        
+            instr = (note-NOTE_OFFSET)//2**7
+            pitch = (note-NOTE_OFFSET)%2**7
+
+            pitch += pitch_add
+            if pitch < 0:
+                pitch = 0
+            elif pitch > 127:
+                pitch = 127
+
+            note = instr*2**7 + pitch
+
+            events.extend([time, dur, note, vel])
+    else:
+        for time, dur, note in zip(all_events[0::3],all_events[1::3],all_events[2::3]):
+            assert note not in [SEPARATOR, REST] # shouldn't be in the sequence yet
+            assert note < CONTROL_OFFSET
+
+            instr = (note-NOTE_OFFSET)//2**7
+            pitch = (note-NOTE_OFFSET)%2**7
+
+            pitch += pitch_add
+            if pitch < 0:
+                pitch = 0
+            elif pitch > 127:
+                pitch = 127
+
+            note = instr*2**7 + pitch
+
+            events.extend([time, dur, note])
+
+    return events
+
+def tempo_augmentation(all_events, tempo_factor=None, include_velocity=False):
+    events = []
+
+    if tempo_factor is None:
+        tempo_factor = np.random.uniform(0.5, 2.0)
+        
+    if include_velocity:
+        for time, dur, note, vel in zip(all_events[0::4],all_events[1::4],all_events[2::4], all_events[3::4]):
+            assert note not in [SEPARATOR, REST] # shouldn't be in the sequence yet
+            assert note < CONTROL_OFFSET
+
+            time = int(time * tempo_factor)
+            dur = min(DUR_OFFSET + int((dur-DUR_OFFSET) * tempo_factor), NOTE_OFFSET-1)
+            
+            if time <= MAX_TIME:
+                events.extend([time, dur, note, vel])
+    else:
+        for time, dur, note in zip(all_events[0::3],all_events[1::3],all_events[2::3]):
+            assert note not in [SEPARATOR, REST] # shouldn't be in the sequence yet
+            assert note < CONTROL_OFFSET
+
+            time = int(time * tempo_factor)
+            dur = min(DUR_OFFSET + int((dur-DUR_OFFSET) * tempo_factor), NOTE_OFFSET-1)
+            
+            if time <= MAX_TIME:
+                events.extend([time, dur, note])
+
+    return events
+
+def velocity_augmentation(all_events, velocity_factor=None):
+    events = []
+
+    if velocity_factor is None:
+        velocity_factor = np.random.uniform(0.5, 2.0)
+        
+    for time, dur, note, vel in zip(all_events[0::4],all_events[1::4],all_events[2::4], all_events[3::4]):
+        assert note not in [SEPARATOR, REST] # shouldn't be in the sequence yet
+        assert note < CONTROL_OFFSET
+
+        vel = vel - VELOCITY_OFFSET
+        vel = int(vel * velocity_factor)
+        vel = vel + VELOCITY_OFFSET
+
+        if vel < 0:
+            vel = 0
+        elif vel > 127:
+            vel = 127
+
+        events.extend([time, dur, note, vel])
+
+    return events
 # changed
 def extract_instruments(all_events, instruments, include_velocity=False):
     events = []
@@ -230,7 +325,19 @@ def tokenize(datafiles, output, augment_factor, idx=0, debug=False, include_velo
                     # span augmentation
                     lmbda = .05
                     events, controls = extract_spans(all_events, lmbda, include_velocity=include_velocity)
-                elif k % 10 < 6:
+                elif k % 10 == 2:
+                    # velocity augmentation
+                    events = velocity_augmentation(all_events, velocity_factor=None)
+                    controls = []
+                elif k % 10 == 3:
+                    # tempo augmentation
+                    events = tempo_augmentation(all_events, tempo_factor=None, include_velocity=include_velocity)
+                    controls = []
+                elif k % 10 == 4:
+                    # pitch augmentation
+                    events = pitch_augmentation(all_events, pitch_add=None, include_velocity=include_velocity)
+                    controls = []
+                elif k % 10 < 7:
                     # random augmentation
                     r = np.random.randint(1,ANTICIPATION_RATES)
                     events, controls = extract_random(all_events, r, include_velocity=include_velocity)

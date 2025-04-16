@@ -13,13 +13,12 @@ from anticipation import ops
 from anticipation.config import *
 from anticipation.vocab import *
 
-# TODO: a lot of changes
-
 # changed
 def safe_logits(logits, idx, include_velocity = False):
     logits[CONTROL_OFFSET:SPECIAL_OFFSET] = -float('inf') # don't generate controls
     if include_velocity:
         logits[SPECIAL_OFFSET:VELOCITY_OFFSET] = -float('inf') # don't generate special tokens but still allow velocities
+        logits[VELOCITY_OFFSET+128:] = -float('inf') # don't generate velocities above 127
         # don't generate stuff in the wrong time slot
         if idx % 4 == 0:
             logits[DUR_OFFSET:DUR_OFFSET+MAX_DUR] = -float('inf')
@@ -27,7 +26,7 @@ def safe_logits(logits, idx, include_velocity = False):
             logits[VELOCITY_OFFSET:] = -float('inf')
         elif idx % 4 == 1:
             logits[TIME_OFFSET:TIME_OFFSET+MAX_TIME] = -float('inf')
-            logits[NOTE_OFFSET:NOTE_OFFSET+MAX_NOTE] = -float('inf')
+            logits[NOTE_OFFSET:NOTE_OFFSET+MAX_NOTE+1] = -float('inf')
             logits[VELOCITY_OFFSET:] = -float('inf')
         elif idx % 4 == 2:
             logits[TIME_OFFSET:TIME_OFFSET+MAX_TIME] = -float('inf')
@@ -250,8 +249,13 @@ def generate(model, start_time, end_time, inputs=None, controls=None, top_p=1.0,
                 else:
                     # nothing more to anticipate
                     anticipated_time = math.inf
-
+            
             new_token = add_token(model, z, tokens, top_p, max(start_time,current_time), include_velocity=include_velocity)
+            
+            if debug:
+                print("current time", current_time)
+                print("new_token", new_token)
+            
             new_time = new_token[0] - TIME_OFFSET
             if new_time >= end_time:
                 break
